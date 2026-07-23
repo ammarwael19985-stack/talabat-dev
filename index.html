@@ -101,16 +101,12 @@
   .total-row td{font-weight:800;padding-top:14px;border-top:2px solid var(--ink);}
   .total-row td.qty{color:var(--ink);font-size:1.3rem;}
   .branch-table td.check{width:44px;padding-left:2px;}
-  .branch-check{
-    width:26px;height:26px;border-radius:8px;
-    border:2px solid var(--line);background:#fff;
-    cursor:pointer;display:inline-flex;align-items:center;justify-content:center;
-    font-size:1rem;color:#fff;font-weight:900;
-  }
-  .branch-check.done{background:var(--accent);border-color:var(--accent);}
   tr.branch-done td{color:#9a9488;}
   tr.branch-done td.qty{color:#9a9488;text-decoration:line-through;}
   tr.branch-done td:first-child{text-decoration:line-through;}
+  .branch-table tr[data-branch]{cursor:pointer;}
+  .branch-table tr.selected td:first-child{font-weight:800;color:var(--accent-dark);}
+  .branch-table tr.selected{background:#eef3ee;}
   .progress-note{font-size:.78rem;color:var(--muted);margin-bottom:14px;}
   .branch-table td.actual{width:78px;padding:6px 4px;}
   .actual-input{
@@ -358,6 +354,7 @@ resetBtn.addEventListener('click', function(){
 });
 
 let currentCode = null;
+let activeBranch = null;
 
 function getPrepState(code){
   try{
@@ -369,12 +366,13 @@ function setPrepState(code, state){
   try{ localStorage.setItem('dev_prep:' + code, JSON.stringify(state)); }catch(e){}
 }
 
-function renderResult(code, row){
+function renderResult(code, row, focusBranch){
   currentCode = code;
   const prep = getPrepState(code);
   let total = 0;
   let doneCount = 0;
   let neededCount = 0;
+  let firstEligible = null;
   let rowsHtml = '';
   branchNames.forEach(function(name, i){
     const qty = row.qtys[i];
@@ -383,48 +381,84 @@ function renderResult(code, row){
     const isZero = qtyNum === 0;
     let actionCell;
     let doneClass = '';
+    let selectedClass = '';
     if(isZero){
-      actionCell = '<td class="zero-note" colspan="2">لا يحتاج</td>';
+      actionCell = '<td class="zero-note">لا يحتاج</td>';
     } else {
       neededCount++;
+      if(firstEligible === null) firstEligible = name;
       const entry = (prep[name] && typeof prep[name] === 'object') ? prep[name] : {};
-      const isDone = !!entry.done;
-      if(isDone){ doneCount++; doneClass = ' branch-done'; }
-      const actualVal = (entry.actual !== undefined && entry.actual !== '') ? entry.actual : qty;
+      const actualVal = (entry.actual !== undefined) ? entry.actual : '';
+      const actualNum = Number(actualVal) || 0;
+      const isComplete = actualVal !== '' && actualNum >= qtyNum;
+      if(isComplete){ doneCount++; doneClass = ' branch-done'; }
+      if(name === activeBranch) selectedClass = ' selected';
       actionCell =
-        '<td class="actual"><input type="number" inputmode="decimal" class="actual-input" data-branch="' + escapeHtml(name) + '" value="' + escapeHtml(String(actualVal)) + '" /></td>' +
-        '<td class="check"><span class="branch-check' + (isDone ? ' done' : '') + '" role="button" data-branch="' + escapeHtml(name) + '" aria-label="تحضير ' + escapeHtml(name) + '">' + (isDone ? '✓' : '') + '</span></td>';
+        '<td class="actual"><input type="number" inputmode="decimal" class="actual-input" data-branch="' + escapeHtml(name) + '" placeholder="0" value="' + escapeHtml(String(actualVal)) + '" /></td>';
     }
     const zeroClass = isZero ? ' zero' : '';
-    rowsHtml += '<tr class="' + (zeroClass + doneClass).trim() + '" data-branch="' + escapeHtml(name) + '">' +
+    rowsHtml += '<tr class="' + (zeroClass + doneClass + selectedClass).trim() + '" data-branch="' + escapeHtml(name) + '">' +
       '<td>' + escapeHtml(name) + '</td>' +
       '<td class="qty">' + qty + '</td>' +
       actionCell +
       '</tr>';
   });
-  rowsHtml += '<tr class="total-row"><td>الإجمالي</td><td class="qty">' + total + '</td><td colspan="2"></td></tr>';
+  rowsHtml += '<tr class="total-row"><td>الإجمالي</td><td class="qty">' + total + '</td><td></td></tr>';
+
+  // decide which branch is active for this render
+  if(focusBranch !== undefined){
+    activeBranch = focusBranch;
+  } else if(!activeBranch || !branchNames.includes(activeBranch) || (Number(row.qtys[branchNames.indexOf(activeBranch)]) || 0) === 0){
+    activeBranch = firstEligible;
+  }
 
   resultBox.innerHTML =
     '<div class="pname">' + escapeHtml(row.product || code) + '</div>' +
     (row.product ? '<div class="pbarcode">' + escapeHtml(code) + '</div>' : '') +
-    '<div class="progress-note">اتحضر ' + doneCount + ' من ' + neededCount + ' فرع محتاج تحضير — عدّل الكمية لو مختلفة ودوس ✓ بعد التحضير</div>' +
+    '<div class="progress-note">اتحضر ' + doneCount + ' من ' + neededCount + ' فرع محتاج تحضير — دوس على اسم الفرع تختاره، وكل مرة تضرب الباركود بتزود العدّاد بتاعه واحد. تقدر كمان تكتب الرقم بإيدك.</div>' +
     '<table class="branch-table"><tbody>' + rowsHtml + '</tbody></table>';
+
+  // re-apply the selected highlight now that activeBranch is finalized
+  if(activeBranch){
+    const rows = resultBox.querySelectorAll('tr[data-branch]');
+    rows.forEach(function(tr){
+      if(tr.getAttribute('data-branch') === activeBranch){
+        tr.classList.add('selected');
+      } else {
+        tr.classList.remove('selected');
+      }
+    });
+  }
 }
 
+// Tap a branch row to select it as the active counter for repeat scans
 resultBox.addEventListener('click', function(e){
-  const btn = e.target.closest('.branch-check');
-  if(!btn || !currentCode) return;
-  const branch = btn.getAttribute('data-branch');
+  const tr = e.target.closest('tr[data-branch]');
+  if(!tr || !currentCode) return;
+  if(tr.classList.contains('zero')) return;
+  const branch = tr.getAttribute('data-branch');
   if(!branch) return;
-  const prep = getPrepState(currentCode);
-  const entry = (prep[branch] && typeof prep[branch] === 'object') ? prep[branch] : {};
-  entry.done = !entry.done;
-  prep[branch] = entry;
-  setPrepState(currentCode, prep);
   const row = index[currentCode];
-  renderResult(currentCode, row);
+  renderResult(currentCode, row, branch);
+  // keep focus usable for manual typing too
+  const input = resultBox.querySelector('.actual-input[data-branch="' + CSS.escape(branch) + '"]');
+  if(input) input.focus();
 });
 
+// Focusing an input directly also selects that branch (without resetting its typed value)
+resultBox.addEventListener('focusin', function(e){
+  const input = e.target.closest('.actual-input');
+  if(!input || !currentCode) return;
+  const branch = input.getAttribute('data-branch');
+  if(!branch || branch === activeBranch) return;
+  activeBranch = branch;
+  const rows = resultBox.querySelectorAll('tr[data-branch]');
+  rows.forEach(function(tr){
+    tr.classList.toggle('selected', tr.getAttribute('data-branch') === branch);
+  });
+});
+
+// Manual typing updates the value directly
 resultBox.addEventListener('input', function(e){
   const input = e.target.closest('.actual-input');
   if(!input || !currentCode) return;
@@ -435,18 +469,45 @@ resultBox.addEventListener('input', function(e){
   entry.actual = input.value;
   prep[branch] = entry;
   setPrepState(currentCode, prep);
+  // refresh done/total styling without losing focus
+  const row = index[currentCode];
+  const qtyIdx = branchNames.indexOf(branch);
+  const qtyNum = Number(row.qtys[qtyIdx]) || 0;
+  const actualNum = Number(input.value) || 0;
+  const tr = input.closest('tr');
+  if(input.value !== '' && actualNum >= qtyNum){ tr.classList.add('branch-done'); }
+  else { tr.classList.remove('branch-done'); }
 });
 
 scanForm.addEventListener('submit', function(e){
   e.preventDefault();
   const code = barcodeInput.value.trim();
   if(!code) return;
+
+  // Same barcode scanned again while its product is already showing => count one unit for the active branch
+  if(code === currentCode && index[code]){
+    const row = index[code];
+    if(activeBranch){
+      const prep = getPrepState(code);
+      const entry = (prep[activeBranch] && typeof prep[activeBranch] === 'object') ? prep[activeBranch] : {};
+      const currentVal = Number(entry.actual) || 0;
+      entry.actual = currentVal + 1;
+      prep[activeBranch] = entry;
+      setPrepState(code, prep);
+    }
+    renderResult(code, row, activeBranch);
+    barcodeInput.value = '';
+    setTimeout(function(){ barcodeInput.focus(); }, 20);
+    return;
+  }
+
   const row = index[code];
   placeholder.classList.add('hidden');
 
   if(row){
     notFoundBox.classList.add('hidden');
     resultBox.classList.remove('hidden');
+    activeBranch = null;
     renderResult(code, row);
 
     history.unshift({name: row.product, code: code});
@@ -454,6 +515,7 @@ scanForm.addEventListener('submit', function(e){
     renderHistory();
   } else {
     currentCode = null;
+    activeBranch = null;
     resultBox.classList.add('hidden');
     notFoundBox.classList.remove('hidden');
     notFoundBox.innerHTML = 'الباركود ده مش موجود في الملف<span class="code">' + escapeHtml(code) + '</span>';
@@ -518,8 +580,9 @@ function buildReportRows(){
         rows.push([code, item.product || '', name, qty, 'لا يحتاج', 'لا يحتاج']);
       } else {
         const entry = (prep[name] && typeof prep[name] === 'object') ? prep[name] : {};
-        const actual = (entry.actual !== undefined && entry.actual !== '') ? entry.actual : qty;
-        const status = entry.done ? 'تم التحضير' : 'لسه';
+        const actual = (entry.actual !== undefined && entry.actual !== '') ? entry.actual : 0;
+        const actualNum = Number(actual) || 0;
+        const status = (entry.actual !== undefined && entry.actual !== '' && actualNum >= qtyNum) ? 'تم التحضير' : 'لسه';
         rows.push([code, item.product || '', name, qty, actual, status]);
       }
     });
