@@ -582,7 +582,14 @@ function buildReportRows(){
         const entry = (prep[name] && typeof prep[name] === 'object') ? prep[name] : {};
         const actual = (entry.actual !== undefined && entry.actual !== '') ? entry.actual : 0;
         const actualNum = Number(actual) || 0;
-        const status = (entry.actual !== undefined && entry.actual !== '' && actualNum >= qtyNum) ? 'تم التحضير' : 'لسه';
+        let status;
+        if(actualNum === qtyNum){
+          status = 'تم التحضير';
+        } else if(actualNum > qtyNum){
+          status = 'أعلى من المطلوبة';
+        } else {
+          status = 'أقل من المطلوبة';
+        }
         rows.push([code, item.product || '', name, qty, actual, status]);
       }
     });
