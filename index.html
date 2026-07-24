@@ -173,7 +173,8 @@
     <div class="scan-box">
       <label>اضرب الباركود دلوقتي</label>
       <form id="scanForm">
-        <input type="text" id="barcodeInput" placeholder="امسح أو اكتب الباركود واضغط Enter" autocomplete="off" />
+        <!-- inputmode="none" تمنع الكيبورد من الظهور مع إبقاء استقبال ضربات الباركود -->
+        <input type="text" id="barcodeInput" inputmode="none" placeholder="امسح أو اكتب الباركود واضغط Enter" autocomplete="off" />
       </form>
     </div>
 
@@ -214,6 +215,11 @@ const historyList = document.getElementById('historyList');
 
 const hasProductCol = document.getElementById('hasProductCol');
 const hintBox = document.getElementById('hintBox');
+
+// الضغط على مربع الباركود نفسه يفتح كيبورد إذا رغبت للكتابة اليدوية فيه
+barcodeInput.addEventListener('click', function(){
+  this.removeAttribute('inputmode');
+});
 
 function updateHint(){
   if(hasProductCol.checked){
@@ -433,7 +439,7 @@ function renderResult(code, row, focusBranch){
   }
 }
 
-// الضغط على مربع الاختيار (Quick Check) للتعبئة التلقائية
+// الضغط على مربع الاختيار (Quick Check)
 resultBox.addEventListener('change', function(e){
   if(!e.target.classList.contains('quick-check') || !currentCode) return;
   const checkbox = e.target;
@@ -456,10 +462,12 @@ resultBox.addEventListener('change', function(e){
   prep[branch] = entry;
   setPrepState(currentCode, prep);
   renderResult(currentCode, row, branch);
+  
+  barcodeInput.setAttribute('inputmode', 'none');
   barcodeInput.focus();
 });
 
-// الضغط على الفرع لاختياره
+// الضغط على الفرع لاختياره (بدون إظهار لوحة المفاتيح)
 resultBox.addEventListener('click', function(e){
   const tr = e.target.closest('tr[data-branch]');
   if(!tr || !currentCode) return;
@@ -471,10 +479,12 @@ resultBox.addEventListener('click', function(e){
   if(!branch) return;
   
   renderResult(currentCode, index[currentCode], branch);
+  
+  barcodeInput.setAttribute('inputmode', 'none');
   barcodeInput.focus();
 });
 
-// التعديل اليدوي في خانة الرقم
+// التعديل اليدوي في خانة الرقم (يُظهر لوحة المفاتيح الرقمية عند الضغط عليها مباشرة)
 resultBox.addEventListener('input', function(e){
   const input = e.target.closest('.actual-input');
   if(!input || !currentCode) return;
@@ -520,7 +530,10 @@ scanForm.addEventListener('submit', function(e){
     }
     renderResult(code, row, activeBranch);
     barcodeInput.value = '';
-    setTimeout(function(){ barcodeInput.focus(); }, 20);
+    setTimeout(function(){ 
+      barcodeInput.setAttribute('inputmode', 'none');
+      barcodeInput.focus(); 
+    }, 20);
     return;
   }
 
@@ -545,7 +558,10 @@ scanForm.addEventListener('submit', function(e){
   }
 
   barcodeInput.value = '';
-  setTimeout(function(){ barcodeInput.focus(); }, 20);
+  setTimeout(function(){ 
+    barcodeInput.setAttribute('inputmode', 'none');
+    barcodeInput.focus(); 
+  }, 20);
 });
 
 function renderHistory(){
