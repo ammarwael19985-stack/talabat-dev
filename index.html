@@ -100,8 +100,21 @@
   .branch-table tr.zero td.qty{color:#b7b1a3;}
   .total-row td{font-weight:800;padding-top:14px;border-top:2px solid var(--ink);}
   .total-row td.qty{color:var(--ink);font-size:1.3rem;}
-  .branch-table td.check{width:36px;text-align:center;padding:0 2px;}
-  .quick-check{width:20px;height:20px;accent-color:var(--accent);cursor:pointer;}
+  
+  /* الزر الجديد للملء التلقائي السريع */
+  .branch-table td.check{width:38px;text-align:center;padding:0 2px;}
+  .fill-btn{
+    background:#faf8f2;border:1px solid var(--line);
+    border-radius:8px;width:32px;height:32px;
+    display:inline-flex;align-items:center;justify-content:center;
+    cursor:pointer;font-size:1rem;color:var(--accent-dark);
+    transition:all 0.15s ease;
+  }
+  .fill-btn:active{
+    background:var(--accent);color:#fff;border-color:var(--accent);
+    transform:scale(0.92);
+  }
+  
   tr.branch-done td{color:#9a9488;}
   tr.branch-done td.qty{color:#9a9488;text-decoration:line-through;}
   tr.branch-done td:first-child{text-decoration:line-through;}
@@ -398,11 +411,9 @@ function renderResult(code, row, focusBranch){
       if(isComplete){ doneCount++; doneClass = ' branch-done'; }
       if(name === activeBranch) selectedClass = ' selected';
       
-      const isChecked = isComplete ? 'checked' : '';
-      
       actionCell =
         '<td class="actual"><input type="number" inputmode="decimal" class="actual-input" data-branch="' + escapeHtml(name) + '" placeholder="0" value="' + escapeHtml(String(actualVal)) + '" /></td>' +
-        '<td class="check"><input type="checkbox" class="quick-check" data-branch="' + escapeHtml(name) + '" ' + isChecked + ' title="تحديد كـ مكتمل" /></td>';
+        '<td class="check"><button type="button" class="fill-btn" data-branch="' + escapeHtml(name) + '" title="كتابة الكمية كاملة تلقائياً">⚡</button></td>';
     }
     const zeroClass = isZero ? ' zero' : '';
     rowsHtml += '<tr class="' + (zeroClass + doneClass + selectedClass).trim() + '" data-branch="' + escapeHtml(name) + '">' +
@@ -422,7 +433,7 @@ function renderResult(code, row, focusBranch){
   resultBox.innerHTML =
     '<div class="pname">' + escapeHtml(row.product || code) + '</div>' +
     (row.product ? '<div class="pbarcode">' + escapeHtml(code) + '</div>' : '') +
-    '<div class="progress-note">اتحضر ' + doneCount + ' من ' + neededCount + ' فرع محتاج تحضير — علّم على المربع لو الكمية مظبوطة، أو دوس على الفرع واضرب الباركود بالعدد.</div>' +
+    '<div class="progress-note">اتحضر ' + doneCount + ' من ' + neededCount + ' فرع محتاج تحضير — اضغط (⚡) لملء الكمية كاملة فوراً، أو اضغط الفرع واضرب الباركود بالعدد.</div>' +
     '<table class="branch-table"><tbody>' + rowsHtml + '</tbody></table>';
 
   if(activeBranch){
@@ -437,10 +448,13 @@ function renderResult(code, row, focusBranch){
   }
 }
 
-resultBox.addEventListener('change', function(e){
-  if(!e.target.classList.contains('quick-check') || !currentCode) return;
-  const checkbox = e.target;
-  const branch = checkbox.getAttribute('data-branch');
+// الضغط على زر الملء التلقائي (⚡)
+resultBox.addEventListener('click', function(e){
+  const btn = e.target.closest('.fill-btn');
+  if(!btn || !currentCode) return;
+  e.stopPropagation();
+
+  const branch = btn.getAttribute('data-branch');
   if(!branch) return;
 
   const row = index[currentCode];
@@ -450,11 +464,8 @@ resultBox.addEventListener('change', function(e){
   const prep = getPrepState(currentCode);
   const entry = (prep[branch] && typeof prep[branch] === 'object') ? prep[branch] : {};
 
-  if(checkbox.checked){
-    entry.actual = targetQty;
-  } else {
-    entry.actual = '';
-  }
+  // ملء الكمية بالكامل مباشرة
+  entry.actual = targetQty;
 
   prep[branch] = entry;
   setPrepState(currentCode, prep);
@@ -464,12 +475,13 @@ resultBox.addEventListener('change', function(e){
   barcodeInput.focus();
 });
 
+// الضغط على الفرع لاختياره
 resultBox.addEventListener('click', function(e){
   const tr = e.target.closest('tr[data-branch]');
   if(!tr || !currentCode) return;
   if(tr.classList.contains('zero')) return;
   
-  if(e.target.classList.contains('actual-input') || e.target.classList.contains('quick-check')) return;
+  if(e.target.classList.contains('actual-input') || e.target.closest('.fill-btn')) return;
 
   const branch = tr.getAttribute('data-branch');
   if(!branch) return;
@@ -480,6 +492,7 @@ resultBox.addEventListener('click', function(e){
   barcodeInput.focus();
 });
 
+// التعديل اليدوي في خانة الرقم
 resultBox.addEventListener('input', function(e){
   const input = e.target.closest('.actual-input');
   if(!input || !currentCode) return;
@@ -497,14 +510,11 @@ resultBox.addEventListener('input', function(e){
   const qtyNum = Number(row.qtys[qtyIdx]) || 0;
   const actualNum = Number(input.value) || 0;
   const tr = input.closest('tr');
-  const checkbox = tr.querySelector('.quick-check');
 
   if(input.value !== '' && actualNum >= qtyNum){ 
     tr.classList.add('branch-done');
-    if(checkbox) checkbox.checked = true;
   } else { 
     tr.classList.remove('branch-done'); 
-    if(checkbox) checkbox.checked = false;
   }
 });
 
@@ -600,7 +610,6 @@ window.addEventListener('appinstalled', function(){
   installBtn.classList.add('hidden');
 });
 
-// الدالة المعدلة لتحديد حالة التقرير بدقة
 function buildReportRows(){
   const rows = [['الباركود', 'المنتج', 'الفرع', 'الكمية المطلوبة', 'الكمية الفعلية', 'الحالة']];
   Object.keys(index).forEach(function(code){
@@ -622,7 +631,7 @@ function buildReportRows(){
         } else if(actualNum > qtyNum){
           status = 'أعلى من المطلوبة';
         } else if(actualNum === 0){
-          status = 'لم يتم التحضير'; // التعديل الجديد هنا
+          status = 'لم يتم التحضير';
         } else {
           status = 'أقل من المطلوبة';
         }
