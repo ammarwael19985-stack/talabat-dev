@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>تجهيز الطلبات - نسخة تجريبية</title>
+<title>BranchPrep - تحضير الفروع بالباركود</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#c9502f">
 <link rel="icon" href="icon-192.png">
@@ -145,10 +145,10 @@
 <body>
 <div class="wrap">
   <header>
-    <h1>تجهيز الطلبات بالباركود <span style="background:#c9502f;color:#fff;font-size:.62rem;padding:2px 8px;border-radius:10px;vertical-align:middle;">نسخة تجريبية</span></h1>
+    <h1>BranchPrep <span style="background:var(--accent);color:#fff;font-size:.62rem;padding:2px 8px;border-radius:10px;vertical-align:middle;">تحضير الفروع</span></h1>
     <span class="tag" id="statusTag">رفع ملف</span>
   </header>
-  <button id="installBtn" class="file-btn hidden" style="margin-bottom:18px;width:100%;">📲 تثبيت كتطبيق على الجهاز</button>
+  <button id="installBtn" class="file-btn hidden" style="margin-bottom:18px;width:100%;">📲 تثبيت التطبيق على الجهاز</button>
 
   <div id="uploadScreen">
     <div class="upload-card">
@@ -390,7 +390,6 @@ function renderResult(code, row, focusBranch){
   let neededCount = 0;
   let rowsHtml = '';
   
-  // تعيين الفرع النشط فقط إذا تم تمريره صراحة عبر النقر عليه
   if(focusBranch !== undefined){
     activeBranch = focusBranch;
   }
@@ -445,7 +444,6 @@ function renderResult(code, row, focusBranch){
   }
 }
 
-// الضغط على زر الملء التلقائي (⚡)
 resultBox.addEventListener('click', function(e){
   const btn = e.target.closest('.fill-btn');
   if(!btn || !currentCode) return;
@@ -471,7 +469,6 @@ resultBox.addEventListener('click', function(e){
   barcodeInput.focus();
 });
 
-// الضغط على الفرع لاختياره بوضوح قبل البدء بالعد
 resultBox.addEventListener('click', function(e){
   const tr = e.target.closest('tr[data-branch]');
   if(!tr || !currentCode) return;
@@ -488,7 +485,6 @@ resultBox.addEventListener('click', function(e){
   barcodeInput.focus();
 });
 
-// التعديل اليدوي في خانة الرقم
 resultBox.addEventListener('input', function(e){
   const input = e.target.closest('.actual-input');
   if(!input || !currentCode) return;
@@ -519,10 +515,8 @@ scanForm.addEventListener('submit', function(e){
   const code = barcodeInput.value.trim();
   if(!code) return;
 
-  // مسح نفس الباركود والمنتج معروض
   if(code === currentCode && index[code]){
     const row = index[code];
-    // لا يزيد إلا إذا حدد العامل فرعاً بيده صراحةً
     if(activeBranch){
       const prep = getPrepState(code);
       const entry = (prep[activeBranch] && typeof prep[activeBranch] === 'object') ? prep[activeBranch] : {};
@@ -532,7 +526,6 @@ scanForm.addEventListener('submit', function(e){
       setPrepState(code, prep);
       renderResult(code, row, activeBranch);
     } else {
-      // لو ضرب الباركود تاني وما اختارش فرع يكتفي بإعادة عرض الشاشة بدون أي عد
       renderResult(code, row);
     }
     barcodeInput.value = '';
@@ -550,7 +543,6 @@ scanForm.addEventListener('submit', function(e){
     notFoundBox.classList.add('hidden');
     resultBox.classList.remove('hidden');
     
-    // إعادة تعيين الفرع المحدد إلى null عند مسح منتج لأول مرة
     activeBranch = null;
     renderResult(code, row);
 
@@ -655,7 +647,7 @@ exportBtn.addEventListener('click', async function(){
     XLSX.utils.book_append_sheet(wb, ws, 'تقرير التحضير');
     const now = new Date();
     const stamp = now.toISOString().slice(0,10);
-    const filename = 'تقرير-تحضير-' + stamp + '.xlsx';
+    const filename = 'BranchPrep-تقرير-' + stamp + '.xlsx';
 
     const wbout = XLSX.write(wb, {bookType:'xlsx', type:'array'});
     const blob = new Blob([wbout], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
