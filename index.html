@@ -173,7 +173,6 @@
     <div class="scan-box">
       <label>اضرب الباركود دلوقتي</label>
       <form id="scanForm">
-        <!-- inputmode="none" تمنع الكيبورد من الظهور مع إبقاء استقبال ضربات الباركود -->
         <input type="text" id="barcodeInput" inputmode="none" placeholder="امسح أو اكتب الباركود واضغط Enter" autocomplete="off" />
       </form>
     </div>
@@ -216,7 +215,6 @@ const historyList = document.getElementById('historyList');
 const hasProductCol = document.getElementById('hasProductCol');
 const hintBox = document.getElementById('hintBox');
 
-// الضغط على مربع الباركود نفسه يفتح كيبورد إذا رغبت للكتابة اليدوية فيه
 barcodeInput.addEventListener('click', function(){
   this.removeAttribute('inputmode');
 });
@@ -439,7 +437,6 @@ function renderResult(code, row, focusBranch){
   }
 }
 
-// الضغط على مربع الاختيار (Quick Check)
 resultBox.addEventListener('change', function(e){
   if(!e.target.classList.contains('quick-check') || !currentCode) return;
   const checkbox = e.target;
@@ -467,7 +464,6 @@ resultBox.addEventListener('change', function(e){
   barcodeInput.focus();
 });
 
-// الضغط على الفرع لاختياره (بدون إظهار لوحة المفاتيح)
 resultBox.addEventListener('click', function(e){
   const tr = e.target.closest('tr[data-branch]');
   if(!tr || !currentCode) return;
@@ -484,7 +480,6 @@ resultBox.addEventListener('click', function(e){
   barcodeInput.focus();
 });
 
-// التعديل اليدوي في خانة الرقم (يُظهر لوحة المفاتيح الرقمية عند الضغط عليها مباشرة)
 resultBox.addEventListener('input', function(e){
   const input = e.target.closest('.actual-input');
   if(!input || !currentCode) return;
@@ -605,6 +600,7 @@ window.addEventListener('appinstalled', function(){
   installBtn.classList.add('hidden');
 });
 
+// الدالة المعدلة لتحديد حالة التقرير بدقة
 function buildReportRows(){
   const rows = [['الباركود', 'المنتج', 'الفرع', 'الكمية المطلوبة', 'الكمية الفعلية', 'الحالة']];
   Object.keys(index).forEach(function(code){
@@ -620,13 +616,17 @@ function buildReportRows(){
         const actual = (entry.actual !== undefined && entry.actual !== '') ? entry.actual : 0;
         const actualNum = Number(actual) || 0;
         let status;
+        
         if(actualNum === qtyNum){
           status = 'تم التحضير';
         } else if(actualNum > qtyNum){
           status = 'أعلى من المطلوبة';
+        } else if(actualNum === 0){
+          status = 'لم يتم التحضير'; // التعديل الجديد هنا
         } else {
           status = 'أقل من المطلوبة';
         }
+        
         rows.push([code, item.product || '', name, qty, actual, status]);
       }
     });
