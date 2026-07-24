@@ -227,6 +227,18 @@ const historyList = document.getElementById('historyList');
 const hasProductCol = document.getElementById('hasProductCol');
 const hintBox = document.getElementById('hintBox');
 
+// دالة التركيز الآمنة التي تحافظ على مكان الشاشة بدون سكرول
+function safeFocus() {
+  const currentScroll = window.scrollY || window.pageYOffset;
+  barcodeInput.setAttribute('inputmode', 'none');
+  try {
+    barcodeInput.focus({ preventScroll: true });
+  } catch (e) {
+    barcodeInput.focus();
+  }
+  window.scrollTo(0, currentScroll);
+}
+
 barcodeInput.addEventListener('click', function(){
   this.removeAttribute('inputmode');
 });
@@ -310,7 +322,7 @@ function processRows(rows){
   uploadScreen.classList.add('hidden');
   scanScreen.classList.remove('hidden');
   statusTag.textContent = 'جاهز للمسح';
-  barcodeInput.focus();
+  safeFocus();
 }
 
 function saveSheetData(){
@@ -444,6 +456,7 @@ function renderResult(code, row, focusBranch){
   }
 }
 
+// الضغط على زر الملء التلقائي (⚡)
 resultBox.addEventListener('click', function(e){
   const btn = e.target.closest('.fill-btn');
   if(!btn || !currentCode) return;
@@ -465,10 +478,10 @@ resultBox.addEventListener('click', function(e){
   setPrepState(currentCode, prep);
   renderResult(currentCode, row, branch);
   
-  barcodeInput.setAttribute('inputmode', 'none');
-  barcodeInput.focus();
+  safeFocus();
 });
 
+// الضغط على الفرع لاختياره
 resultBox.addEventListener('click', function(e){
   const tr = e.target.closest('tr[data-branch]');
   if(!tr || !currentCode) return;
@@ -481,10 +494,10 @@ resultBox.addEventListener('click', function(e){
   
   renderResult(currentCode, index[currentCode], branch);
   
-  barcodeInput.setAttribute('inputmode', 'none');
-  barcodeInput.focus();
+  safeFocus();
 });
 
+// التعديل اليدوي في خانة الرقم
 resultBox.addEventListener('input', function(e){
   const input = e.target.closest('.actual-input');
   if(!input || !currentCode) return;
@@ -530,8 +543,7 @@ scanForm.addEventListener('submit', function(e){
     }
     barcodeInput.value = '';
     setTimeout(function(){ 
-      barcodeInput.setAttribute('inputmode', 'none');
-      barcodeInput.focus(); 
+      safeFocus();
     }, 20);
     return;
   }
@@ -559,8 +571,7 @@ scanForm.addEventListener('submit', function(e){
 
   barcodeInput.value = '';
   setTimeout(function(){ 
-    barcodeInput.setAttribute('inputmode', 'none');
-    barcodeInput.focus(); 
+    safeFocus();
   }, 20);
 });
 
