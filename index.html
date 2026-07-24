@@ -100,7 +100,8 @@
   .branch-table tr.zero td.qty{color:#b7b1a3;}
   .total-row td{font-weight:800;padding-top:14px;border-top:2px solid var(--ink);}
   .total-row td.qty{color:var(--ink);font-size:1.3rem;}
-  .branch-table td.check{width:44px;padding-left:2px;}
+  .branch-table td.check{width:36px;text-align:center;padding:0 2px;}
+  .quick-check{width:20px;height:20px;accent-color:var(--accent);cursor:pointer;}
   tr.branch-done td{color:#9a9488;}
   tr.branch-done td.qty{color:#9a9488;text-decoration:line-through;}
   tr.branch-done td:first-child{text-decoration:line-through;}
@@ -319,7 +320,6 @@ function loadSheetData(){
   }catch(e){ return false; }
 }
 
-// Restore previous session on load/refresh
 (function restoreSession(){
   if(loadSheetData()){
     rowCountLabel.textContent = rowCount;
@@ -383,7 +383,7 @@ function renderResult(code, row, focusBranch){
     let doneClass = '';
     let selectedClass = '';
     if(isZero){
-      actionCell = '<td class="zero-note">لا يحتاج</td>';
+      actionCell = '<td class="zero-note">لا يحتاج</td><td></td>';
     } else {
       neededCount++;
       if(firstEligible === null) firstEligible = name;
@@ -393,8 +393,12 @@ function renderResult(code, row, focusBranch){
       const isComplete = actualVal !== '' && actualNum >= qtyNum;
       if(isComplete){ doneCount++; doneClass = ' branch-done'; }
       if(name === activeBranch) selectedClass = ' selected';
+      
+      const isChecked = isComplete ? 'checked' : '';
+      
       actionCell =
-        '<td class="actual"><input type="number" inputmode="decimal" class="actual-input" data-branch="' + escapeHtml(name) + '" placeholder="0" value="' + escapeHtml(String(actualVal)) + '" /></td>';
+        '<td class="actual"><input type="number" inputmode="decimal" class="actual-input" data-branch="' + escapeHtml(name) + '" placeholder="0" value="' + escapeHtml(String(actualVal)) + '" /></td>' +
+        '<td class="check"><input type="checkbox" class="quick-check" data-branch="' + escapeHtml(name) + '" ' + isChecked + ' title="تحديد كـ مكتمل" /></td>';
     }
     const zeroClass = isZero ? ' zero' : '';
     rowsHtml += '<tr class="' + (zeroClass + doneClass + selectedClass).trim() + '" data-branch="' + escapeHtml(name) + '">' +
@@ -403,9 +407,8 @@ function renderResult(code, row, focusBranch){
       actionCell +
       '</tr>';
   });
-  rowsHtml += '<tr class="total-row"><td>الإجمالي</td><td class="qty">' + total + '</td><td></td></tr>';
+  rowsHtml += '<tr class="total-row"><td>الإجمالي</td><td class="qty">' + total + '</td><td></td><td></td></tr>';
 
-  // decide which branch is active for this render
   if(focusBranch !== undefined){
     activeBranch = focusBranch;
   } else if(!activeBranch || !branchNames.includes(activeBranch) || (Number(row.qtys[branchNames.indexOf(activeBranch)]) || 0) === 0){
@@ -415,10 +418,9 @@ function renderResult(code, row, focusBranch){
   resultBox.innerHTML =
     '<div class="pname">' + escapeHtml(row.product || code) + '</div>' +
     (row.product ? '<div class="pbarcode">' + escapeHtml(code) + '</div>' : '') +
-    '<div class="progress-note">اتحضر ' + doneCount + ' من ' + neededCount + ' فرع محتاج تحضير — دوس على اسم الفرع تختاره، وكل مرة تضرب الباركود بتزود العدّاد بتاعه واحد. تقدر كمان تكتب الرقم بإيدك.</div>' +
+    '<div class="progress-note">اتحضر ' + doneCount + ' من ' + neededCount + ' فرع محتاج تحضير — علّم على المربع لو الكمية مظبوطة، أو دوس على الفرع واضرب الباركود بالعدد.</div>' +
     '<table class="branch-table"><tbody>' + rowsHtml + '</tbody></table>';
 
-  // re-apply the selected highlight now that activeBranch is finalized
   if(activeBranch){
     const rows = resultBox.querySelectorAll('tr[data-branch]');
     rows.forEach(function(tr){
@@ -431,25 +433,48 @@ function renderResult(code, row, focusBranch){
   }
 }
 
-// Tap a branch row to select it as the active counter for repeat scans
+// الضغط على مربع الاختيار (Quick Check) للتعبئة التلقائية
+resultBox.addEventListener('change', function(e){
+  if(!e.target.classList.contains('quick-check') || !currentCode) return;
+  const checkbox = e.target;
+  const branch = checkbox.getAttribute('data-branch');
+  if(!branch) return;
+
+  const row = index[currentCode];
+  const qtyIdx = branchNames.indexOf(branch);
+  const targetQty = row.qtys[qtyIdx];
+
+  const prep = getPrepState(currentCode);
+  const entry = (prep[branch] && typeof prep[branch] === 'object') ? prep[branch] : {};
+
+  if(checkbox.checked){
+    entry.actual = targetQty;
+  } else {
+    entry.actual = '';
+  }
+
+  prep[branch] = entry;
+  setPrepState(currentCode, prep);
+  renderResult(currentCode, row, branch);
+  barcodeInput.focus();
+});
+
+// الضغط على الفرع لاختياره
 resultBox.addEventListener('click', function(e){
   const tr = e.target.closest('tr[data-branch]');
   if(!tr || !currentCode) return;
   if(tr.classList.contains('zero')) return;
   
-  // إذا ضغط المستخدم يدويًا داخل الخانة للكتابة باللوحة، نتركه يكتب
-  if(e.target.classList.contains('actual-input')) return;
+  if(e.target.classList.contains('actual-input') || e.target.classList.contains('quick-check')) return;
 
   const branch = tr.getAttribute('data-branch');
   if(!branch) return;
   
   renderResult(currentCode, index[currentCode], branch);
-  
-  // إعادة التركيز فوراً لخانة الباركود لكي تستقبل الضربات التالية بالماسح
   barcodeInput.focus();
 });
 
-// Manual typing updates the value directly
+// التعديل اليدوي في خانة الرقم
 resultBox.addEventListener('input', function(e){
   const input = e.target.closest('.actual-input');
   if(!input || !currentCode) return;
@@ -462,14 +487,20 @@ resultBox.addEventListener('input', function(e){
   prep[branch] = entry;
   setPrepState(currentCode, prep);
   
-  // refresh done/total styling without losing focus
   const row = index[currentCode];
   const qtyIdx = branchNames.indexOf(branch);
   const qtyNum = Number(row.qtys[qtyIdx]) || 0;
   const actualNum = Number(input.value) || 0;
   const tr = input.closest('tr');
-  if(input.value !== '' && actualNum >= qtyNum){ tr.classList.add('branch-done'); }
-  else { tr.classList.remove('branch-done'); }
+  const checkbox = tr.querySelector('.quick-check');
+
+  if(input.value !== '' && actualNum >= qtyNum){ 
+    tr.classList.add('branch-done');
+    if(checkbox) checkbox.checked = true;
+  } else { 
+    tr.classList.remove('branch-done'); 
+    if(checkbox) checkbox.checked = false;
+  }
 });
 
 scanForm.addEventListener('submit', function(e){
@@ -477,7 +508,6 @@ scanForm.addEventListener('submit', function(e){
   const code = barcodeInput.value.trim();
   if(!code) return;
 
-  // Same barcode scanned again while its product is already showing => count one unit for the active branch
   if(code === currentCode && index[code]){
     const row = index[code];
     if(activeBranch){
@@ -535,14 +565,12 @@ function escapeHtml(str){
   return div.innerHTML;
 }
 
-// PWA: register service worker
 if('serviceWorker' in navigator){
   window.addEventListener('load', function(){
     navigator.serviceWorker.register('sw.js').catch(function(){});
   });
 }
 
-// PWA: Android install prompt
 let deferredPrompt = null;
 const installBtn = document.getElementById('installBtn');
 window.addEventListener('beforeinstallprompt', function(e){
