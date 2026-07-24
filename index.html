@@ -436,26 +436,17 @@ resultBox.addEventListener('click', function(e){
   const tr = e.target.closest('tr[data-branch]');
   if(!tr || !currentCode) return;
   if(tr.classList.contains('zero')) return;
+  
+  // إذا ضغط المستخدم يدويًا داخل الخانة للكتابة باللوحة، نتركه يكتب
+  if(e.target.classList.contains('actual-input')) return;
+
   const branch = tr.getAttribute('data-branch');
   if(!branch) return;
-  const row = index[currentCode];
-  renderResult(currentCode, row, branch);
-  // keep focus usable for manual typing too
-  const input = resultBox.querySelector('.actual-input[data-branch="' + CSS.escape(branch) + '"]');
-  if(input) input.focus();
-});
-
-// Focusing an input directly also selects that branch (without resetting its typed value)
-resultBox.addEventListener('focusin', function(e){
-  const input = e.target.closest('.actual-input');
-  if(!input || !currentCode) return;
-  const branch = input.getAttribute('data-branch');
-  if(!branch || branch === activeBranch) return;
-  activeBranch = branch;
-  const rows = resultBox.querySelectorAll('tr[data-branch]');
-  rows.forEach(function(tr){
-    tr.classList.toggle('selected', tr.getAttribute('data-branch') === branch);
-  });
+  
+  renderResult(currentCode, index[currentCode], branch);
+  
+  // إعادة التركيز فوراً لخانة الباركود لكي تستقبل الضربات التالية بالماسح
+  barcodeInput.focus();
 });
 
 // Manual typing updates the value directly
@@ -464,11 +455,13 @@ resultBox.addEventListener('input', function(e){
   if(!input || !currentCode) return;
   const branch = input.getAttribute('data-branch');
   if(!branch) return;
+  
   const prep = getPrepState(currentCode);
   const entry = (prep[branch] && typeof prep[branch] === 'object') ? prep[branch] : {};
   entry.actual = input.value;
   prep[branch] = entry;
   setPrepState(currentCode, prep);
+  
   // refresh done/total styling without losing focus
   const row = index[currentCode];
   const qtyIdx = branchNames.indexOf(branch);
