@@ -101,7 +101,6 @@
   .total-row td{font-weight:800;padding-top:14px;border-top:2px solid var(--ink);}
   .total-row td.qty{color:var(--ink);font-size:1.3rem;}
   
-  /* الزر الجديد للملء التلقائي السريع */
   .branch-table td.check{width:38px;text-align:center;padding:0 2px;}
   .fill-btn{
     background:#faf8f2;border:1px solid var(--line);
@@ -389,8 +388,13 @@ function renderResult(code, row, focusBranch){
   let total = 0;
   let doneCount = 0;
   let neededCount = 0;
-  let firstEligible = null;
   let rowsHtml = '';
+  
+  // تعيين الفرع النشط فقط إذا تم تمريره صراحة عبر النقر عليه
+  if(focusBranch !== undefined){
+    activeBranch = focusBranch;
+  }
+
   branchNames.forEach(function(name, i){
     const qty = row.qtys[i];
     const qtyNum = Number(qty) || 0;
@@ -403,7 +407,6 @@ function renderResult(code, row, focusBranch){
       actionCell = '<td class="zero-note">لا يحتاج</td><td></td>';
     } else {
       neededCount++;
-      if(firstEligible === null) firstEligible = name;
       const entry = (prep[name] && typeof prep[name] === 'object') ? prep[name] : {};
       const actualVal = (entry.actual !== undefined) ? entry.actual : '';
       const actualNum = Number(actualVal) || 0;
@@ -424,16 +427,10 @@ function renderResult(code, row, focusBranch){
   });
   rowsHtml += '<tr class="total-row"><td>الإجمالي</td><td class="qty">' + total + '</td><td></td><td></td></tr>';
 
-  if(focusBranch !== undefined){
-    activeBranch = focusBranch;
-  } else if(!activeBranch || !branchNames.includes(activeBranch) || (Number(row.qtys[branchNames.indexOf(activeBranch)]) || 0) === 0){
-    activeBranch = firstEligible;
-  }
-
   resultBox.innerHTML =
     '<div class="pname">' + escapeHtml(row.product || code) + '</div>' +
     (row.product ? '<div class="pbarcode">' + escapeHtml(code) + '</div>' : '') +
-    '<div class="progress-note">اتحضر ' + doneCount + ' من ' + neededCount + ' فرع محتاج تحضير — اضغط (⚡) لملء الكمية كاملة فوراً، أو اضغط الفرع واضرب الباركود بالعدد.</div>' +
+    '<div class="progress-note">اتحضر ' + doneCount + ' من ' + neededCount + ' فرع محتاج تحضير — دوس على الفرع واضرب الباركود عشان يعد له، أو اضغط (⚡) للملء المباشر.</div>' +
     '<table class="branch-table"><tbody>' + rowsHtml + '</tbody></table>';
 
   if(activeBranch){
@@ -464,7 +461,6 @@ resultBox.addEventListener('click', function(e){
   const prep = getPrepState(currentCode);
   const entry = (prep[branch] && typeof prep[branch] === 'object') ? prep[branch] : {};
 
-  // ملء الكمية بالكامل مباشرة
   entry.actual = targetQty;
 
   prep[branch] = entry;
@@ -475,7 +471,7 @@ resultBox.addEventListener('click', function(e){
   barcodeInput.focus();
 });
 
-// الضغط على الفرع لاختياره
+// الضغط على الفرع لاختياره بوضوح قبل البدء بالعد
 resultBox.addEventListener('click', function(e){
   const tr = e.target.closest('tr[data-branch]');
   if(!tr || !currentCode) return;
@@ -523,8 +519,10 @@ scanForm.addEventListener('submit', function(e){
   const code = barcodeInput.value.trim();
   if(!code) return;
 
+  // مسح نفس الباركود والمنتج معروض
   if(code === currentCode && index[code]){
     const row = index[code];
+    // لا يزيد إلا إذا حدد العامل فرعاً بيده صراحةً
     if(activeBranch){
       const prep = getPrepState(code);
       const entry = (prep[activeBranch] && typeof prep[activeBranch] === 'object') ? prep[activeBranch] : {};
@@ -532,8 +530,11 @@ scanForm.addEventListener('submit', function(e){
       entry.actual = currentVal + 1;
       prep[activeBranch] = entry;
       setPrepState(code, prep);
+      renderResult(code, row, activeBranch);
+    } else {
+      // لو ضرب الباركود تاني وما اختارش فرع يكتفي بإعادة عرض الشاشة بدون أي عد
+      renderResult(code, row);
     }
-    renderResult(code, row, activeBranch);
     barcodeInput.value = '';
     setTimeout(function(){ 
       barcodeInput.setAttribute('inputmode', 'none');
@@ -548,6 +549,8 @@ scanForm.addEventListener('submit', function(e){
   if(row){
     notFoundBox.classList.add('hidden');
     resultBox.classList.remove('hidden');
+    
+    // إعادة تعيين الفرع المحدد إلى null عند مسح منتج لأول مرة
     activeBranch = null;
     renderResult(code, row);
 
