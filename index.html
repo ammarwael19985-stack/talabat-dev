@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BranchPrep - تحضير الفروع بالباركود</title>
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#c9502f">
+<meta name="theme-color" content="#1f6f5c">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -46,31 +46,25 @@
     font-size:.7rem;color:var(--muted);
     border:1px solid var(--line);padding:3px 8px;border-radius:20px;
   }
-  .upload-card{
+  
+  /* شاشة الدخول */
+  .login-card{
     background:var(--panel);border:1px solid var(--line);
     border-radius:14px;padding:34px 22px;text-align:center;
   }
-  .upload-card .icon{font-size:2.4rem;margin-bottom:8px;}
-  .upload-card h2{font-size:1.05rem;margin:0 0 6px;}
-  .upload-card p{color:var(--muted);font-size:.85rem;margin:0 0 20px;line-height:1.7;}
+  .login-card input {
+    width:100%; padding:14px; margin-bottom:12px; border-radius:10px;
+    border:1px solid var(--line); font-size:1.1rem; text-align:center; font-weight:bold;
+  }
+  .login-card input:focus { outline:2px solid var(--accent); }
+
   .file-btn{
     display:inline-block;background:var(--accent);color:#fff;
     padding:13px 28px;border-radius:10px;font-weight:700;
-    font-size:.95rem;cursor:pointer;border:none;
+    font-size:.95rem;cursor:pointer;border:none;width:100%;
   }
   .file-btn:active{background:var(--accent-dark);}
-  input[type=file]{display:none;}
-  .hint-box{
-    margin-top:22px;text-align:right;background:#faf8f2;
-    border:1px dashed var(--line);border-radius:10px;
-    padding:14px 16px;font-size:.78rem;color:var(--muted);line-height:2;
-  }
-  .hint-box b{color:var(--ink);}
-  .col-toggle{
-    display:flex;align-items:center;gap:8px;justify-content:center;
-    margin-top:18px;font-size:.82rem;color:var(--ink);cursor:pointer;
-  }
-  .col-toggle input{width:18px;height:18px;cursor:pointer;}
+
   .status-bar{
     display:flex;justify-content:space-between;align-items:center;
     background:var(--panel);border:1px solid var(--line);
@@ -82,6 +76,14 @@
     background:none;border:1px solid var(--line);border-radius:8px;
     padding:6px 12px;font-size:.75rem;color:var(--warn);cursor:pointer;
   }
+
+  /* شريط تحذير العمل المزدوج */
+  .worker-warning {
+    background:#fbeae5; border:1px solid #e3b6a6; color:var(--warn);
+    padding:10px 14px; border-radius:10px; font-weight:bold; font-size:0.9rem;
+    margin-bottom:12px; text-align:center; display:none;
+  }
+
   .scan-box{background:var(--ink);border-radius:14px;padding:20px;margin-bottom:18px;}
   .scan-box label{color:#c9c2b3;font-size:.8rem;display:block;margin-bottom:8px;}
   .scan-box input{
@@ -89,6 +91,7 @@
     border:none;text-align:center;letter-spacing:1px;font-weight:700;
   }
   .scan-box input:focus{outline:3px solid var(--accent);}
+  
   .result{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:16px;}
   .result .pname{font-size:1.15rem;font-weight:800;margin-bottom:2px;}
   .result .pbarcode{font-size:.78rem;color:var(--muted);margin-bottom:16px;direction:ltr;display:inline-block;}
@@ -139,55 +142,44 @@
   .history-item{display:flex;justify-content:space-between;padding:8px 4px;font-size:.82rem;border-bottom:1px solid var(--line);}
   .history-item span.code{color:var(--muted);direction:ltr;}
   .error-msg{background:#fbeae5;border:1px solid #e3b6a6;color:var(--warn);padding:12px 14px;border-radius:10px;font-size:.85rem;margin-top:16px;}
-  .hidden{display:none;}
+  .hidden{display:none !important;}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
     <h1>BranchPrep <span style="background:var(--accent);color:#fff;font-size:.62rem;padding:2px 8px;border-radius:10px;vertical-align:middle;">تحضير الفروع</span></h1>
-    <span class="tag" id="statusTag">رفع ملف</span>
+    <span class="tag" id="statusTag">تسجيل دخول</span>
   </header>
-  <button id="installBtn" class="file-btn hidden" style="margin-bottom:18px;width:100%;">📲 تثبيت التطبيق على الجهاز</button>
 
-  <div id="uploadScreen">
-    <div class="upload-card">
-      <div class="icon">📦</div>
-      <h2>ارفع ملف الطلبات</h2>
-      <p>ارفع ملف الإكسيل اللي فيه الباركود وكمية كل فرع، وبعدين اضرب باركود أي منتج يطلعلك الكميات لكل فرع فورًا.</p>
-      <label class="file-btn">
-        اختيار ملف إكسيل
-        <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" />
-      </label>
-      <div class="error-msg hidden" id="uploadError"></div>
-      <label class="col-toggle">
-        <input type="checkbox" id="hasProductCol" checked />
-        الملف فيه عمود اسم المنتج بعد الباركود
-      </label>
-      <div class="hint-box" id="hintBox">
-        <div><b>شكل الملف (فيه اسم منتج):</b></div>
-        <div>العمود الأول: الباركود</div>
-        <div>العمود الثاني: اسم المنتج</div>
-        <div>باقي الأعمدة: اسم كل فرع، وتحته الكمية المطلوبة منه</div>
-      </div>
+  <!-- شاشة الدخول أولاً -->
+  <div id="loginScreen">
+    <div class="login-card">
+      <h2 style="margin-top:0;">مرحباً بك 📦</h2>
+      <p style="color:var(--muted); font-size:0.85rem; margin-bottom:20px;">ادخل اسمك وكود الطلبية من الكمبيوتر للبدء</p>
+      <input type="text" id="workerNameInput" placeholder="اسم العامل (مثال: عمار)" />
+      <input type="number" id="orderCodeInput" placeholder="كود الطلبية (4 أرقام)" />
+      <button class="file-btn" onclick="loginToOrder()">دخول للتحضير 🚀</button>
+      <div class="error-msg hidden" id="loginError"></div>
     </div>
   </div>
 
+  <!-- شاشة التحضير بالباركود -->
   <div id="scanScreen" class="hidden">
     <div class="status-bar">
-      <span>الملف محمّل — <b id="rowCountLabel">0</b> منتج / <b id="branchCountLabel">0</b> فرع</span>
-      <button id="resetBtn">رفع ملف جديد</button>
+      <span>العامل: <b id="workerLabel">-</b> | الطلبية: <b id="codeLabel">-</b></span>
+      <button id="logoutBtn" onclick="logout()">خروج 🚪</button>
     </div>
-
-    <button id="exportBtn" class="file-btn" style="width:100%;margin-bottom:8px;background:var(--accent-dark);">📄 تحميل تقرير التحضير</button>
-    <div id="exportStatus" class="error-msg hidden" style="margin-bottom:18px;"></div>
 
     <div class="scan-box">
       <label>اضرب الباركود دلوقتي</label>
       <form id="scanForm">
-        <input type="text" id="barcodeInput" inputmode="none" placeholder="امسح أو اكتب الباركود واضغط Enter" autocomplete="off" />
+        <input type="text" id="barcodeInput" placeholder="امسح الباركود واضغط Enter" autocomplete="off" />
       </form>
     </div>
+
+    <!-- شريط تحذير لو عامل تاني شغال على نفس المنتج -->
+    <div id="workerWarning" class="worker-warning"></div>
 
     <div id="placeholder" class="placeholder">استنى مسح أول باركود عشان تطلعلك الكميات هنا</div>
     <div id="resultBox" class="result hidden"></div>
@@ -201,258 +193,236 @@
 </div>
 
 <script>
+const DB_URL = "https://branchprep-default-rtdb.firebaseio.com";
+let workerName = localStorage.getItem('bp_worker') || "";
+let orderCode = localStorage.getItem('bp_code') || "";
+let itemsData = {};
 let branchNames = [];
-let index = {};
-let rowCount = 0;
 let history = [];
+let currentCode = null;
+let activeBranch = null;
 
-const uploadScreen = document.getElementById('uploadScreen');
+const loginScreen = document.getElementById('loginScreen');
 const scanScreen = document.getElementById('scanScreen');
 const statusTag = document.getElementById('statusTag');
-const fileInput = document.getElementById('fileInput');
-const uploadError = document.getElementById('uploadError');
-const rowCountLabel = document.getElementById('rowCountLabel');
-const branchCountLabel = document.getElementById('branchCountLabel');
-const resetBtn = document.getElementById('resetBtn');
-const exportBtn = document.getElementById('exportBtn');
-const exportStatus = document.getElementById('exportStatus');
-const scanForm = document.getElementById('scanForm');
+const loginError = document.getElementById('loginError');
+const workerLabel = document.getElementById('workerLabel');
+const codeLabel = document.getElementById('codeLabel');
 const barcodeInput = document.getElementById('barcodeInput');
 const placeholder = document.getElementById('placeholder');
 const resultBox = document.getElementById('resultBox');
 const notFoundBox = document.getElementById('notFoundBox');
 const historyBox = document.getElementById('historyBox');
 const historyList = document.getElementById('historyList');
+const workerWarning = document.getElementById('workerWarning');
 
-const hasProductCol = document.getElementById('hasProductCol');
-const hintBox = document.getElementById('hintBox');
-
-// دالة التركيز الآمنة التي تحافظ على مكان الشاشة بدون سكرول
-function safeFocus() {
-  const currentScroll = window.scrollY || window.pageYOffset;
-  barcodeInput.setAttribute('inputmode', 'none');
-  try {
-    barcodeInput.focus({ preventScroll: true });
-  } catch (e) {
-    barcodeInput.focus();
+window.addEventListener('DOMContentLoaded', () => {
+  if (workerName && orderCode) {
+    document.getElementById('workerNameInput').value = workerName;
+    document.getElementById('orderCodeInput').value = orderCode;
+    loginToOrder();
   }
-  window.scrollTo(0, currentScroll);
-}
-
-barcodeInput.addEventListener('click', function(){
-  this.removeAttribute('inputmode');
 });
 
-function updateHint(){
-  if(hasProductCol.checked){
-    hintBox.innerHTML = '<div><b>شكل الملف (فيه اسم منتج):</b></div>' +
-      '<div>العمود الأول: الباركود</div>' +
-      '<div>العمود الثاني: اسم المنتج</div>' +
-      '<div>باقي الأعمدة: اسم كل فرع، وتحته الكمية المطلوبة منه</div>';
-  } else {
-    hintBox.innerHTML = '<div><b>شكل الملف (من غير اسم منتج):</b></div>' +
-      '<div>العمود الأول: الباركود</div>' +
-      '<div>باقي الأعمدة: اسم كل فرع، وتحته الكمية المطلوبة منه</div>';
+async function loginToOrder() {
+  const wName = document.getElementById('workerNameInput').value.trim();
+  const oCode = document.getElementById('orderCodeInput').value.trim();
+
+  if(!wName || !oCode) {
+    showLoginError('برجاء كتابة الاسم وكود الطلبية المكون من 4 أرقام');
+    return;
+  }
+
+  loginError.classList.add('hidden');
+  
+  try {
+    const res = await fetch(`${DB_URL}/orders/${oCode}.json`);
+    const data = await res.json();
+
+    if (data && data.items) {
+      workerName = wName;
+      orderCode = oCode;
+      itemsData = data.items;
+
+      localStorage.setItem('bp_worker', workerName);
+      localStorage.setItem('bp_code', orderCode);
+
+      workerLabel.textContent = workerName;
+      codeLabel.textContent = orderCode;
+
+      // استخراج الفروع
+      const firstItem = Object.values(itemsData)[0];
+      branchNames = Object.keys(firstItem.branches || {});
+
+      loginScreen.classList.add('hidden');
+      scanScreen.classList.remove('hidden');
+      statusTag.textContent = 'جاهز للمسح';
+
+      // استماع لحظي للتحديثات السحابية
+      startLiveSync();
+      safeFocus();
+    } else {
+      showLoginError('كود الطلبية غير صحيح أو تم إنهاؤها!');
+    }
+  } catch(err) {
+    showLoginError('تعذر الاتصال بالسيرفر، تأكد من الإنترنت.');
   }
 }
-hasProductCol.addEventListener('change', updateHint);
 
-function showUploadError(msg){
-  uploadError.textContent = msg;
-  uploadError.classList.remove('hidden');
+function showLoginError(msg) {
+  loginError.textContent = msg;
+  loginError.classList.remove('hidden');
 }
 
-fileInput.addEventListener('change', function(e){
-  const file = e.target.files[0];
-  if(!file) return;
-  uploadError.classList.add('hidden');
-  const reader = new FileReader();
-  reader.onload = function(evt){
-    try{
-      const data = new Uint8Array(evt.target.result);
-      const wb = XLSX.read(data, {type:'array'});
-      const sheet = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(sheet, {header:1, defval:''});
-      processRows(rows);
-    }catch(err){
-      showUploadError('حصل خطأ في قراءة الملف. تأكد إن الملف اكسيل صحيح. (' + err.message + ')');
+function logout() {
+  if(confirm('هل تريد الخروج؟')) {
+    localStorage.removeItem('bp_worker');
+    localStorage.removeItem('bp_code');
+    location.reload();
+  }
+}
+
+function startLiveSync() {
+  const es = new EventSource(`${DB_URL}/orders/${orderCode}/items.json`);
+  es.onmessage = (e) => {
+    const newItems = JSON.parse(e.data);
+    if(newItems) {
+      itemsData = newItems;
+      if(currentCode && itemsData[currentCode]) {
+        renderResult(currentCode, itemsData[currentCode], activeBranch);
+      }
     }
   };
-  reader.onerror = function(){
-    showUploadError('مقدرتش أفتح الملف. جرب تاني.');
-  };
-  reader.readAsArrayBuffer(file);
-});
+}
 
-function processRows(rows){
-  if(!rows || rows.length < 2){
-    showUploadError('الملف فاضي أو مفيهوش بيانات كفاية.');
+function safeFocus() {
+  setTimeout(() => {
+    barcodeInput.focus();
+  }, 100);
+}
+
+document.getElementById('scanForm').addEventListener('submit', function(e){
+  e.preventDefault();
+  const code = barcodeInput.value.trim();
+  if(!code) return;
+
+  if(code === currentCode && itemsData[code]){
+    if(activeBranch){
+      let currentVal = Number(itemsData[code].branches[activeBranch].actual) || 0;
+      updateBranchActual(code, activeBranch, currentVal + 1);
+    }
+    barcodeInput.value = '';
+    safeFocus();
     return;
   }
-  const withProduct = hasProductCol.checked;
-  const branchStart = withProduct ? 2 : 1;
-  const header = rows[0];
-  branchNames = header.slice(branchStart).map(h => String(h).trim()).filter(Boolean);
-  index = {};
-  rowCount = 0;
-  for(let i=1; i<rows.length; i++){
-    const r = rows[i];
-    if(!r || r.length===0) continue;
-    const code = String(r[0] !== undefined ? r[0] : '').trim();
-    if(!code) continue;
-    const product = withProduct ? String(r[1] !== undefined ? r[1] : '').trim() : '';
-    const qtys = branchNames.map((_, idx) => {
-      const v = r[branchStart+idx];
-      return (v === undefined || v === '') ? 0 : v;
-    });
-    index[code] = {product: product, qtys: qtys};
-    rowCount++;
+
+  placeholder.classList.add('hidden');
+
+  if(itemsData[code]){
+    notFoundBox.classList.add('hidden');
+    resultBox.classList.remove('hidden');
+    activeBranch = null;
+    renderResult(code, itemsData[code]);
+
+    history.unshift({name: itemsData[code].product, code: code});
+    history = history.slice(0, 8);
+    renderHistory();
+  } else {
+    currentCode = null;
+    activeBranch = null;
+    resultBox.classList.add('hidden');
+    notFoundBox.classList.remove('hidden');
+    workerWarning.style.display = 'none';
+    notFoundBox.innerHTML = 'الباركود ده مش موجود في الطلبية <span class="code">' + escapeHtml(code) + '</span>';
   }
-  if(rowCount === 0){
-    showUploadError('مقدرتش ألاقي أي صفوف فيها باركود في الملف.');
-    return;
-  }
-  if(branchNames.length === 0){
-    showUploadError('مقدرتش ألاقي أعمدة فروع بعد عمود الباركود' + (withProduct ? ' واسم المنتج' : '') + '.');
-    return;
-  }
-  rowCountLabel.textContent = rowCount;
-  branchCountLabel.textContent = branchNames.length;
-  saveSheetData();
-  uploadScreen.classList.add('hidden');
-  scanScreen.classList.remove('hidden');
-  statusTag.textContent = 'جاهز للمسح';
+
+  barcodeInput.value = '';
   safeFocus();
-}
-
-function saveSheetData(){
-  try{
-    localStorage.setItem('dev_sheetData', JSON.stringify({
-      branchNames: branchNames,
-      index: index,
-      rowCount: rowCount
-    }));
-  }catch(e){}
-}
-
-function loadSheetData(){
-  try{
-    const raw = localStorage.getItem('dev_sheetData');
-    if(!raw) return false;
-    const data = JSON.parse(raw);
-    if(!data || !data.branchNames || !data.index) return false;
-    branchNames = data.branchNames;
-    index = data.index;
-    rowCount = data.rowCount || Object.keys(index).length;
-    return true;
-  }catch(e){ return false; }
-}
-
-(function restoreSession(){
-  if(loadSheetData()){
-    rowCountLabel.textContent = rowCount;
-    branchCountLabel.textContent = branchNames.length;
-    uploadScreen.classList.add('hidden');
-    scanScreen.classList.remove('hidden');
-    statusTag.textContent = 'جاهز للمسح';
-  }
-})();
-
-resetBtn.addEventListener('click', function(){
-  const sure = confirm('هل أنت متأكد؟ ده هيمسح كل تقدّم التحضير الحالي (العلامات والكميات الفعلية) عشان ترفع ملف جديد.');
-  if(!sure) return;
-  branchNames = [];
-  index = {};
-  rowCount = 0;
-  history = [];
-  fileInput.value = '';
-  try{
-    Object.keys(localStorage).filter(function(k){ return k.indexOf('dev_prep:') === 0; })
-      .forEach(function(k){ localStorage.removeItem(k); });
-    localStorage.removeItem('dev_sheetData');
-  }catch(e){}
-  historyList.innerHTML = '';
-  historyBox.classList.add('hidden');
-  resultBox.classList.add('hidden');
-  notFoundBox.classList.add('hidden');
-  placeholder.classList.remove('hidden');
-  scanScreen.classList.add('hidden');
-  uploadScreen.classList.remove('hidden');
-  statusTag.textContent = 'رفع ملف';
 });
-
-let currentCode = null;
-let activeBranch = null;
-
-function getPrepState(code){
-  try{
-    const raw = localStorage.getItem('dev_prep:' + code);
-    return raw ? JSON.parse(raw) : {};
-  }catch(e){ return {}; }
-}
-function setPrepState(code, state){
-  try{ localStorage.setItem('dev_prep:' + code, JSON.stringify(state)); }catch(e){}
-}
 
 function renderResult(code, row, focusBranch){
   currentCode = code;
-  const prep = getPrepState(code);
   let total = 0;
   let doneCount = 0;
   let neededCount = 0;
   let rowsHtml = '';
-  
-  if(focusBranch !== undefined){
-    activeBranch = focusBranch;
-  }
+  let otherWorkerName = "";
 
-  branchNames.forEach(function(name, i){
-    const qty = row.qtys[i];
-    const qtyNum = Number(qty) || 0;
+  if(focusBranch !== undefined) activeBranch = focusBranch;
+
+  branchNames.forEach(function(bName){
+    const bData = row.branches[bName] || { target:0, actual:"", worker:"" };
+    const qtyNum = Number(bData.target) || 0;
+    const actualVal = bData.actual;
+    const actualNum = Number(actualVal) || 0;
+    
     total += qtyNum;
     const isZero = qtyNum === 0;
+
+    // فحص التحذير اللحظي: هل كُتب فيه واسم العامل مختلف عني؟
+    if(bData.worker && bData.worker !== workerName) {
+      otherWorkerName = bData.worker;
+    }
+
     let actionCell;
     let doneClass = '';
     let selectedClass = '';
+
     if(isZero){
       actionCell = '<td class="zero-note">لا يحتاج</td><td></td>';
     } else {
       neededCount++;
-      const entry = (prep[name] && typeof prep[name] === 'object') ? prep[name] : {};
-      const actualVal = (entry.actual !== undefined) ? entry.actual : '';
-      const actualNum = Number(actualVal) || 0;
       const isComplete = actualVal !== '' && actualNum >= qtyNum;
-      if(isComplete){ doneCount++; doneClass = ' branch-done'; }
-      if(name === activeBranch) selectedClass = ' selected';
-      
+      if(isComplete) { doneCount++; doneClass = ' branch-done'; }
+      if(bName === activeBranch) selectedClass = ' selected';
+
       actionCell =
-        '<td class="actual"><input type="number" inputmode="decimal" class="actual-input" data-branch="' + escapeHtml(name) + '" placeholder="0" value="' + escapeHtml(String(actualVal)) + '" /></td>' +
-        '<td class="check"><button type="button" class="fill-btn" data-branch="' + escapeHtml(name) + '" title="كتابة الكمية كاملة تلقائياً">⚡</button></td>';
+        '<td class="actual"><input type="number" class="actual-input" data-branch="' + escapeHtml(bName) + '" placeholder="0" value="' + escapeHtml(String(actualVal)) + '" /></td>' +
+        '<td class="check"><button type="button" class="fill-btn" data-branch="' + escapeHtml(bName) + '">⚡</button></td>';
     }
+
     const zeroClass = isZero ? ' zero' : '';
-    rowsHtml += '<tr class="' + (zeroClass + doneClass + selectedClass).trim() + '" data-branch="' + escapeHtml(name) + '">' +
-      '<td>' + escapeHtml(name) + '</td>' +
-      '<td class="qty">' + qty + '</td>' +
+    rowsHtml += '<tr class="' + (zeroClass + doneClass + selectedClass).trim() + '" data-branch="' + escapeHtml(bName) + '">' +
+      '<td>' + escapeHtml(bName) + (bData.worker ? ` <small style="color:#777;">(${escapeHtml(bData.worker)})</small>` : '') + '</td>' +
+      '<td class="qty">' + qtyNum + '</td>' +
       actionCell +
       '</tr>';
   });
+
+  // إظهار تنبيه العمل المزدوج
+  if(otherWorkerName) {
+    workerWarning.style.display = 'block';
+    workerWarning.innerHTML = `⚠️ تنبيه: العامل (<b>${otherWorkerName}</b>) شغال على هذا المنتج حالياً!`;
+  } else {
+    workerWarning.style.display = 'none';
+  }
+
   rowsHtml += '<tr class="total-row"><td>الإجمالي</td><td class="qty">' + total + '</td><td></td><td></td></tr>';
 
   resultBox.innerHTML =
     '<div class="pname">' + escapeHtml(row.product || code) + '</div>' +
     (row.product ? '<div class="pbarcode">' + escapeHtml(code) + '</div>' : '') +
-    '<div class="progress-note">اتحضر ' + doneCount + ' من ' + neededCount + ' فرع محتاج تحضير — دوس على الفرع واضرب الباركود عشان يعد له، أو اضغط (⚡) للملء المباشر.</div>' +
+    '<div class="progress-note">اتحضر ' + doneCount + ' من ' + neededCount + ' فرع محتاج تحضير — دوس على الفرع واضرب الباركود لتسجيله، أو (⚡) للملء.</div>' +
     '<table class="branch-table"><tbody>' + rowsHtml + '</tbody></table>';
+}
 
-  if(activeBranch){
-    const rows = resultBox.querySelectorAll('tr[data-branch]');
-    rows.forEach(function(tr){
-      if(tr.getAttribute('data-branch') === activeBranch){
-        tr.classList.add('selected');
-      } else {
-        tr.classList.remove('selected');
-      }
+// التحديث والرفع للـ Firebase
+async function updateBranchActual(code, branch, val) {
+  if(!code || !branch) return;
+  
+  itemsData[code].branches[branch].actual = val;
+  itemsData[code].branches[branch].worker = workerName;
+
+  renderResult(code, itemsData[code], branch);
+
+  try {
+    await fetch(`${DB_URL}/orders/${orderCode}/items/${code}/branches/${branch}.json`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ actual: val, worker: workerName })
     });
+  } catch(e) {
+    console.error("Firebase update failed", e);
   }
 }
 
@@ -465,19 +435,8 @@ resultBox.addEventListener('click', function(e){
   const branch = btn.getAttribute('data-branch');
   if(!branch) return;
 
-  const row = index[currentCode];
-  const qtyIdx = branchNames.indexOf(branch);
-  const targetQty = row.qtys[qtyIdx];
-
-  const prep = getPrepState(currentCode);
-  const entry = (prep[branch] && typeof prep[branch] === 'object') ? prep[branch] : {};
-
-  entry.actual = targetQty;
-
-  prep[branch] = entry;
-  setPrepState(currentCode, prep);
-  renderResult(currentCode, row, branch);
-  
+  const targetQty = itemsData[currentCode].branches[branch].target;
+  updateBranchActual(currentCode, branch, targetQty);
   safeFocus();
 });
 
@@ -485,94 +444,24 @@ resultBox.addEventListener('click', function(e){
 resultBox.addEventListener('click', function(e){
   const tr = e.target.closest('tr[data-branch]');
   if(!tr || !currentCode) return;
-  if(tr.classList.contains('zero')) return;
-  
-  if(e.target.classList.contains('actual-input') || e.target.closest('.fill-btn')) return;
+  if(tr.classList.contains('zero') || e.target.classList.contains('actual-input') || e.target.closest('.fill-btn')) return;
 
   const branch = tr.getAttribute('data-branch');
   if(!branch) return;
   
-  renderResult(currentCode, index[currentCode], branch);
-  
+  activeBranch = branch;
+  renderResult(currentCode, itemsData[currentCode], branch);
   safeFocus();
 });
 
-// التعديل اليدوي في خانة الرقم
-resultBox.addEventListener('input', function(e){
+// التعديل اليدوي للرقم
+resultBox.addEventListener('change', function(e){
   const input = e.target.closest('.actual-input');
   if(!input || !currentCode) return;
   const branch = input.getAttribute('data-branch');
   if(!branch) return;
-  
-  const prep = getPrepState(currentCode);
-  const entry = (prep[branch] && typeof prep[branch] === 'object') ? prep[branch] : {};
-  entry.actual = input.value;
-  prep[branch] = entry;
-  setPrepState(currentCode, prep);
-  
-  const row = index[currentCode];
-  const qtyIdx = branchNames.indexOf(branch);
-  const qtyNum = Number(row.qtys[qtyIdx]) || 0;
-  const actualNum = Number(input.value) || 0;
-  const tr = input.closest('tr');
 
-  if(input.value !== '' && actualNum >= qtyNum){ 
-    tr.classList.add('branch-done');
-  } else { 
-    tr.classList.remove('branch-done'); 
-  }
-});
-
-scanForm.addEventListener('submit', function(e){
-  e.preventDefault();
-  const code = barcodeInput.value.trim();
-  if(!code) return;
-
-  if(code === currentCode && index[code]){
-    const row = index[code];
-    if(activeBranch){
-      const prep = getPrepState(code);
-      const entry = (prep[activeBranch] && typeof prep[activeBranch] === 'object') ? prep[activeBranch] : {};
-      const currentVal = Number(entry.actual) || 0;
-      entry.actual = currentVal + 1;
-      prep[activeBranch] = entry;
-      setPrepState(code, prep);
-      renderResult(code, row, activeBranch);
-    } else {
-      renderResult(code, row);
-    }
-    barcodeInput.value = '';
-    setTimeout(function(){ 
-      safeFocus();
-    }, 20);
-    return;
-  }
-
-  const row = index[code];
-  placeholder.classList.add('hidden');
-
-  if(row){
-    notFoundBox.classList.add('hidden');
-    resultBox.classList.remove('hidden');
-    
-    activeBranch = null;
-    renderResult(code, row);
-
-    history.unshift({name: row.product, code: code});
-    history = history.slice(0, 8);
-    renderHistory();
-  } else {
-    currentCode = null;
-    activeBranch = null;
-    resultBox.classList.add('hidden');
-    notFoundBox.classList.remove('hidden');
-    notFoundBox.innerHTML = 'الباركود ده مش موجود في الملف<span class="code">' + escapeHtml(code) + '</span>';
-  }
-
-  barcodeInput.value = '';
-  setTimeout(function(){ 
-    safeFocus();
-  }, 20);
+  updateBranchActual(currentCode, branch, input.value);
 });
 
 function renderHistory(){
@@ -591,99 +480,6 @@ function escapeHtml(str){
   div.textContent = str === undefined || str === null ? '' : String(str);
   return div.innerHTML;
 }
-
-if('serviceWorker' in navigator){
-  window.addEventListener('load', function(){
-    navigator.serviceWorker.register('sw.js').catch(function(){});
-  });
-}
-
-let deferredPrompt = null;
-const installBtn = document.getElementById('installBtn');
-window.addEventListener('beforeinstallprompt', function(e){
-  e.preventDefault();
-  deferredPrompt = e;
-  installBtn.classList.remove('hidden');
-});
-installBtn.addEventListener('click', async function(){
-  if(!deferredPrompt) return;
-  deferredPrompt.prompt();
-  await deferredPrompt.userChoice;
-  deferredPrompt = null;
-  installBtn.classList.add('hidden');
-});
-window.addEventListener('appinstalled', function(){
-  installBtn.classList.add('hidden');
-});
-
-function buildReportRows(){
-  const rows = [['الباركود', 'المنتج', 'الفرع', 'الكمية المطلوبة', 'الكمية الفعلية', 'الحالة']];
-  Object.keys(index).forEach(function(code){
-    const item = index[code];
-    const prep = getPrepState(code);
-    branchNames.forEach(function(name, i){
-      const qty = item.qtys[i];
-      const qtyNum = Number(qty) || 0;
-      if(qtyNum === 0){
-        rows.push([code, item.product || '', name, qty, 'لا يحتاج', 'لا يحتاج']);
-      } else {
-        const entry = (prep[name] && typeof prep[name] === 'object') ? prep[name] : {};
-        const actual = (entry.actual !== undefined && entry.actual !== '') ? entry.actual : 0;
-        const actualNum = Number(actual) || 0;
-        let status;
-        
-        if(actualNum === qtyNum){
-          status = 'تم التحضير';
-        } else if(actualNum > qtyNum){
-          status = 'أعلى من المطلوبة';
-        } else if(actualNum === 0){
-          status = 'لم يتم التحضير';
-        } else {
-          status = 'أقل من المطلوبة';
-        }
-        
-        rows.push([code, item.product || '', name, qty, actual, status]);
-      }
-    });
-  });
-  return rows;
-}
-
-exportBtn.addEventListener('click', async function(){
-  exportStatus.classList.add('hidden');
-  try{
-    const rows = buildReportRows();
-    const ws = XLSX.utils.aoa_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'تقرير التحضير');
-    const now = new Date();
-    const stamp = now.toISOString().slice(0,10);
-    const filename = 'BranchPrep-تقرير-' + stamp + '.xlsx';
-
-    const wbout = XLSX.write(wb, {bookType:'xlsx', type:'array'});
-    const blob = new Blob([wbout], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-
-    let shared = false;
-    try{
-      if(navigator.canShare && window.File){
-        const file = new File([blob], filename, {type: blob.type});
-        if(navigator.canShare({files:[file]})){
-          await navigator.share({files:[file], title: filename});
-          shared = true;
-        }
-      }
-    }catch(shareErr){
-      shared = false;
-    }
-
-    if(!shared){
-      XLSX.writeFile(wb, filename);
-    }
-  }catch(err){
-    exportStatus.textContent = 'التحميل المباشر مش مدعوم جوه التطبيق ده. افتح رابط الأداة في متصفح كروم وصدّر التقرير من هناك.';
-    exportStatus.classList.remove('hidden');
-  }
-});
 </script>
 </body>
 </html>
