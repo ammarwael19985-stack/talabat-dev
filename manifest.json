@@ -1,6 +1,6 @@
 {
   "name": "BranchPrep - تحضير الفروع",
-  "short_name": "BranchPrep",
+  "short_name": "BranchPrep!",
   "description": "نظام تحضير وتعبئة الطلبات للفروع باستخدام ماسح الباركود",
   "start_url": "./index.html",
   "scope": "./",
